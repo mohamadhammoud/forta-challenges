@@ -12,52 +12,81 @@ import {
   FindingType,
 } from "forta-agent";
 
-export const ERC20_TRANSFER_EVENT =
-  "event Transfer(address indexed from, address indexed to, uint256 value)";
-export const TETHER_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-export const TETHER_DECIMALS = 6;
+import { NetworkManager } from "forta-agent-tools";
+import ethers from "forta-agent";
+
+import { networkData, NetworkData } from "./network";
+import {
+  methods,
+  fortaRegistryAddress,
+  nethermindDeployAddress,
+} from "./constants";
+
+const networkManager = new NetworkManager(networkData); //global var
+
+// export const ERC20_TRANSFER_EVENT =
+//   "event Transfer(address indexed from, address indexed to, uint256 value)";
+// export const TETHER_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+// export const TETHER_DECIMALS = 6;
 let findingsCount = 0;
 
-const handleTransaction: HandleTransaction = async (
-  txEvent: TransactionEvent
-) => {
-  const findings: Finding[] = [];
+export const provideHandleTransaction = (
+  methods: string[],
+  nethermindDeployAddress: string,
+  fortaRegistryAddress: string
+): HandleTransaction => {
+  return async (txEvent: TransactionEvent) => {
+    const findings: Finding[] = [];
 
-  // limiting this agent to emit only 5 findings so that the alert feed is not spammed
-  if (findingsCount >= 5) return findings;
+    // limiting this agent to emit only 5 findings so that the alert feed is not spammed
+    if (findingsCount >= 5) return findings;
 
-  // filter the transaction logs for Tether transfer events
-  const tetherTransferEvents = txEvent.filterLog(
-    ERC20_TRANSFER_EVENT,
-    TETHER_ADDRESS
-  );
+    // filter TransactionEvent by methods for bot deployments and updates agents on Forta registry smart contract
+    const functionCalls = txEvent.filterFunction(methods, fortaRegistryAddress);
 
-  tetherTransferEvents.forEach((transferEvent) => {
-    // extract transfer event arguments
-    const { to, from, value } = transferEvent.args;
-    // shift decimals of transfer value
-    const normalizedValue = value.div(10 ** TETHER_DECIMALS);
+    functionCalls.forEach((call) => {
+      // extract transfer event arguments
+      const { agentId, metadata, chainIds } = call.args;
 
-    // if more than 10,000 Tether were transferred, report it
-    if (normalizedValue.gt(10000)) {
-      findings.push(
-        Finding.fromObject({
-          name: "High Tether Transfer",
-          description: `High amount of USDT transferred: ${normalizedValue}`,
-          alertId: "FORTA-1",
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          metadata: {
-            to,
-            from,
-          },
-        })
-      );
-      findingsCount++;
-    }
-  });
+      if (call.name === "createAgent") {
+        findings.push(
+          Finding.fromObject({
+            name: "Nethermind Forta Bot Create Agent",
+            description: `Bot has been Created by ${nethermindDeployAddress}`,
+            alertId: "FORTA-1 Create",
+            severity: FindingSeverity.Low,
+            type: FindingType.Info,
+            metadata: {
+              agentId: agentId.toString(),
+              metadata,
+              chainIds: chainIds.toString(),
+            },
+          })
+        );
+        findingsCount++;
+      }
 
-  return findings;
+      if (call.name === "updateAgent") {
+        findings.push(
+          Finding.fromObject({
+            name: "Nethermind Forta Bot Update Agent",
+            description: `Bot has been updated by ${nethermindDeployAddress}`,
+            alertId: "FORTA-1 Update",
+            severity: FindingSeverity.Low,
+            type: FindingType.Info,
+            metadata: {
+              agentId: agentId.toString(),
+              metadata,
+              chainIds: chainIds.toString(),
+            },
+          })
+        );
+        findingsCount++;
+      }
+    });
+
+    return findings;
+  };
 };
 
 // const initialize: Initialize = async () => {
@@ -68,7 +97,7 @@ const handleTransaction: HandleTransaction = async (
 //   const findings: Finding[] = [];
 //   // detect some block condition
 //   return findings;
-// }
+// };
 
 // const handleAlert: HandleAlert = async (alertEvent: AlertEvent) => {
 //   const findings: Finding[] = [];
@@ -78,14 +107,17 @@ const handleTransaction: HandleTransaction = async (
 
 // const healthCheck: HealthCheck = async () => {
 //   const errors: string[] = [];
-  // detect some health check condition
-  // errors.push("not healthy due to some condition")
-  // return errors;
+// detect some health check condition
+// errors.push("not healthy due to some condition")
+// return errors;
 // }
 
 export default {
-  // initialize,
-  handleTransaction,
+  handleTransaction: provideHandleTransaction(
+    methods,
+    nethermindDeployAddress,
+    fortaRegistryAddress
+  ),
   // healthCheck,
   // handleBlock,
   // handleAlert
