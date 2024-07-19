@@ -1,19 +1,10 @@
 import {
-  BlockEvent,
   Finding,
-  Initialize,
-  HandleBlock,
-  HealthCheck,
   HandleTransaction,
-  HandleAlert,
-  AlertEvent,
   TransactionEvent,
   FindingSeverity,
   FindingType,
 } from "forta-agent";
-
-import { NetworkManager } from "forta-agent-tools";
-import ethers from "forta-agent";
 
 import {
   METHODS,
