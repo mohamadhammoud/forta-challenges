@@ -22,9 +22,6 @@ export const provideHandleTransaction = (
   return async (txEvent: TransactionEvent) => {
     const findings: Finding[] = [];
 
-    // limiting this agent to emit only 5 findings so that the alert feed is not spammed
-    if (findingsCount >= 5) return findings;
-
     // filter TransactionEvent by methods for bot deployments and updates agents on Forta registry smart contract
     const functionCalls = txEvent.filterFunction(methods, fortaRegistryAddress);
 
