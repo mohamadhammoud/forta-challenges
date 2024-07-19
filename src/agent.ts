@@ -16,9 +16,9 @@ import { NetworkManager } from "forta-agent-tools";
 import ethers from "forta-agent";
 
 import {
-  methods,
-  fortaRegistryAddress,
-  nethermindDeployAddress,
+  METHODS,
+  FORTA_REGISTRY_ADDRESS,
+  NETHERMIND_DEPLOY_ADDRESS,
 } from "./constants";
 
 let findingsCount = 0;
@@ -84,8 +84,8 @@ export const provideHandleTransaction = (
 
 export default {
   handleTransaction: provideHandleTransaction(
-    methods,
-    nethermindDeployAddress,
-    fortaRegistryAddress
+    METHODS,
+    FORTA_REGISTRY_ADDRESS,
+    NETHERMIND_DEPLOY_ADDRESS
   ),
 };

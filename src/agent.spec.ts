@@ -4,7 +4,7 @@ import { createAddress } from "forta-agent-tools";
 import { TestTransactionEvent } from "forta-agent-tools/lib/test";
 import { provideHandleTransaction } from "./agent";
 import { BigNumber } from "ethers";
-import { methods } from "./constants";
+import { METHODS } from "./constants";
 
 describe("Nethermind bot deployment to Forta Bot Registry", () => {
   let handleTransaction: HandleTransaction;
@@ -16,7 +16,7 @@ describe("Nethermind bot deployment to Forta Bot Registry", () => {
   const DESTROY_AGENT_SIGNATURE =
     "function destroyAgent(uint256 agentId,address ,string metadata,uint256[] chainIds)";
 
-  const AGENT_ABI = new Interface([...methods]);
+  const AGENT_ABI = new Interface([...METHODS]);
   const FALSE_ABI = new Interface([DESTROY_AGENT_SIGNATURE]);
 
   const mockDeploymentTxOne = [
@@ -35,7 +35,7 @@ describe("Nethermind bot deployment to Forta Bot Registry", () => {
 
   beforeAll(() => {
     handleTransaction = provideHandleTransaction(
-      methods,
+      METHODS,
       mockNethermindDeployerAddress,
       mockFortaRegistryAddress
     );
