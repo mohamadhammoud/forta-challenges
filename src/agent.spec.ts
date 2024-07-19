@@ -259,4 +259,38 @@ describe("Nethermind bot deployment to Forta Bot Registry", () => {
       }),
     ]);
   });
+
+  it("returns empty when the deployer account is NOT the Nethermind account", async () => {
+    const irrevelantAddress = createAddress("0x05");
+
+    mockTxEvent
+      .setFrom(irrevelantAddress)
+      .setTo(mockFortaRegistryAddress)
+      .addTraces({
+        function: FALSE_ABI.getFunction("destroyAgent"),
+        from: mockNethermindDeployerAddress,
+        to: mockFortaRegistryAddress,
+        arguments: mockDeploymentTxOne,
+      })
+      .addTraces({
+        function: AGENT_ABI.getFunction("createAgent"),
+        from: mockNethermindDeployerAddress,
+        to: mockFortaRegistryAddress,
+        arguments: mockDeploymentTxOne,
+      })
+      .addTraces({
+        function: AGENT_ABI.getFunction("updateAgent"),
+        from: mockNethermindDeployerAddress,
+        to: mockFortaRegistryAddress,
+        arguments: [
+          mockDeploymentTxTwo[0],
+          mockDeploymentTxTwo[2],
+          mockDeploymentTxTwo[3],
+        ],
+      });
+
+    const findings = await handleTransaction(mockTxEvent);
+
+    expect(findings).toStrictEqual([]);
+  });
 });

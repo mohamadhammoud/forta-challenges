@@ -22,6 +22,11 @@ export const provideHandleTransaction = (
   return async (txEvent: TransactionEvent) => {
     const findings: Finding[] = [];
 
+    // return empty findings if TransactionEvent is not from Nethermind
+    if (txEvent.from !== nethermindDeployAddress.toLowerCase()) {
+      return findings;
+    }
+
     // filter TransactionEvent by methods for bot deployments and updates agents on Forta registry smart contract
     const functionCalls = txEvent.filterFunction(methods, fortaRegistryAddress);
 
