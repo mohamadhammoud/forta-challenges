@@ -8,7 +8,7 @@ import { METHODS } from "./constants";
 
 describe("Nethermind bot deployment to Forta Bot Registry", () => {
   let handleTransaction: HandleTransaction;
-  let mockTxEvent = new TestTransactionEvent();
+  let mockTxEvent: TestTransactionEvent;
 
   const mockNethermindDeployerAddress = createAddress("0x02");
   const mockFortaRegistryAddress = createAddress("0x03");
