@@ -26,13 +26,10 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
 
-      - name: Navigate to challenge-one folder
-        run: cd challenge-one
-
       - name: Install dependencies
+        working-directory: challenge-one
         run: npm ci
-        working-directory: ./challenge-one
 
       - name: Run tests
+        working-directory: challenge-one
         run: npm test
-        working-directory: ./challenge-one
