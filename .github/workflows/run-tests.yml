@@ -25,6 +25,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
+          cache-dependency-path: challenge-one/package-lock.json
 
       - name: List files in challenge-one directory
         run: ls -la challenge-one
