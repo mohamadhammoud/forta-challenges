@@ -5,9 +5,9 @@ name: Forta Bot Challenge CI
 
 on:
   push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+    branches: ["@intern-challenges/one"]
+  # pull_request:
+  #   branches: ["main"]
 
 jobs:
   build:
