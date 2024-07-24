@@ -16,42 +16,34 @@ export const provideHandleTransaction = (
     const findings: Finding[] = [];
     const lowerCaseSwapRouter02Address = swapRouter02Address.toLowerCase();
 
-    const iface = new ethers.utils.Interface(abi);
-
     // Filter transaction events by logs that match the swap events and router address
     const swapLogs = txEvent.filterFunction(abi, lowerCaseSwapRouter02Address);
 
-    console.log({ swapLogs });
-
     swapLogs.forEach((swap) => {
-      console.log({ swap });
-
       // Extract swap event arguments
-      const {
-        sender,
-        recipient,
-        amount0,
-        amount1,
-        sqrtPriceX96,
-        liquidity,
-        tick,
-      } = swap.args;
+      const tokenIn = swap.args.params["tokenIn"];
+      const tokenOut = swap.args.params["tokenOut"];
+      const fee = swap.args.params["fee"];
+      const recipient = swap.args.params["recipient"];
+      const amountIn = swap.args.params["amountIn"];
+      const amountOutMinimum = swap.args.params["amountOutMinimum"];
+      const sqrtPriceLimitX96 = swap.args.params["sqrtPriceLimitX96"];
 
       findings.push(
         Finding.fromObject({
-          alertId: "FORTA-2 Swap",
+          alertId: "FORTA-2",
           name: "Nethermind Forta Bot UniSwap",
           description: `Swap event detected on ${swapRouter02Address}`,
           severity: FindingSeverity.Low,
           type: FindingType.Info,
           metadata: {
-            sender,
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
+            fee: fee,
             recipient,
-            amount0: amount0.toString(),
-            amount1: amount1.toString(),
-            sqrtPriceX96: sqrtPriceX96.toString(),
-            liquidity: liquidity.toString(),
-            tick: tick.toString(),
+            amountIn: amountIn.toString(),
+            amountOutMinimum: amountOutMinimum.toString(),
+            sqrtPriceLimitX96: sqrtPriceLimitX96.toString(),
           },
         })
       );

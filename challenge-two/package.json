@@ -1,6 +1,6 @@
 {
   "name": "forta-challenge-2",
-  "displayName": "Nethermind Create and Update Forta Bot",
+  "displayName": "Nethermind Uniswap Forta Bot",
   "version": "0.0.1",
   "description": "Forta Bot that captures creation and update of bots deployed by Nethermind",
   "longDescription": "This Forta Bot searches for transactions to the Forta Bot Registry that are sent from Nethermind's deployment address. The transactions are further filtered to provide alerts in the cases that a new bot is deployed, or a pre-existing bot is updated.",
