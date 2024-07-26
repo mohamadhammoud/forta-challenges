@@ -1,11 +1,6 @@
-// export const EVENTS = [
-//   "event Swap(address, address, int256, int256, uint160, uint128, int24)",
-// ];
-
 export const SWAP_ROUTER_02 = "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45";
-// export const SWAP_ROUTER_02 = "0x0A28C2F5E0E8463E047C203F00F649812aE67E4f";
 
-export const UNISWAP_ROUTER_ABI = [
+export const UNISWAP_ROUTER_ABI = Object.freeze([
   {
     inputs: [
       { internalType: "address", name: "_factoryV2", type: "address" },
@@ -490,4 +485,4 @@ export const UNISWAP_ROUTER_ABI = [
     type: "function",
   },
   { stateMutability: "payable", type: "receive" },
-];
+]);

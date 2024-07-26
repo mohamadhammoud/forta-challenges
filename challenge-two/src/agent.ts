@@ -4,7 +4,6 @@ import {
   TransactionEvent,
   FindingSeverity,
   FindingType,
-  ethers,
 } from "forta-agent";
 import { UNISWAP_ROUTER_ABI, SWAP_ROUTER_02 } from "./constants";
 
@@ -20,33 +19,62 @@ export const provideHandleTransaction = (
     const swapLogs = txEvent.filterFunction(abi, lowerCaseSwapRouter02Address);
 
     swapLogs.forEach((swap) => {
-      // Extract swap event arguments
-      const tokenIn = swap.args.params["tokenIn"];
-      const tokenOut = swap.args.params["tokenOut"];
-      const fee = swap.args.params["fee"];
-      const recipient = swap.args.params["recipient"];
-      const amountIn = swap.args.params["amountIn"];
-      const amountOutMinimum = swap.args.params["amountOutMinimum"];
-      const sqrtPriceLimitX96 = swap.args.params["sqrtPriceLimitX96"];
+      if (swap?.name === "exactInputSingle") {
+        // Extract swap event arguments
+        const tokenIn = swap.args.params["tokenIn"];
+        const tokenOut = swap.args.params["tokenOut"];
+        const fee = swap.args.params["fee"];
+        const recipient = swap.args.params["recipient"];
+        const amountIn = swap.args.params["amountIn"];
+        const amountOutMinimum = swap.args.params["amountOutMinimum"];
+        const sqrtPriceLimitX96 = swap.args.params["sqrtPriceLimitX96"];
 
-      findings.push(
-        Finding.fromObject({
-          alertId: "FORTA-2",
-          name: "Nethermind Forta Bot UniSwap",
-          description: `Swap event detected on ${swapRouter02Address}`,
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          metadata: {
-            tokenIn: tokenIn,
-            tokenOut: tokenOut,
-            fee: fee,
-            recipient,
-            amountIn: amountIn.toString(),
-            amountOutMinimum: amountOutMinimum.toString(),
-            sqrtPriceLimitX96: sqrtPriceLimitX96.toString(),
-          },
-        })
-      );
+        findings.push(
+          Finding.fromObject({
+            alertId: "FORTA-2",
+            name: "Nethermind Forta Bot UniSwap - exactInputSingle",
+            description: `Swap event detected on ${swapRouter02Address}`,
+            severity: FindingSeverity.Low,
+            type: FindingType.Info,
+            metadata: {
+              tokenIn: tokenIn,
+              tokenOut: tokenOut,
+              fee: fee.toString(),
+              recipient,
+              amountIn: amountIn.toString(),
+              amountOutMinimum: amountOutMinimum.toString(),
+              sqrtPriceLimitX96: sqrtPriceLimitX96.toString(),
+            },
+          })
+        );
+      } else if (swap?.name === "exactOutputSingle") {
+        const tokenIn = swap.args.params["tokenIn"];
+        const tokenOut = swap.args.params["tokenOut"];
+        const fee = swap.args.params["fee"];
+        const recipient = swap.args.params["recipient"];
+        const amountOut = swap.args.params["amountOut"];
+        const amountInMaximum = swap.args.params["amountInMaximum"];
+        const sqrtPriceLimitX96 = swap.args.params["sqrtPriceLimitX96"];
+
+        findings.push(
+          Finding.fromObject({
+            alertId: "FORTA-2",
+            name: "Nethermind Forta Bot UniSwap - exactOutputSingle",
+            description: `Swap event detected on ${swapRouter02Address}`,
+            severity: FindingSeverity.Low,
+            type: FindingType.Info,
+            metadata: {
+              tokenIn: tokenIn,
+              tokenOut: tokenOut,
+              fee: fee.toString(),
+              recipient,
+              amountOut: amountOut.toString(),
+              amountInMaximum: amountInMaximum.toString(),
+              sqrtPriceLimitX96: sqrtPriceLimitX96.toString(),
+            },
+          })
+        );
+      }
     });
 
     return findings;

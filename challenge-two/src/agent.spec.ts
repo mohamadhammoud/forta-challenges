@@ -1,296 +1,205 @@
-// import { FindingType, FindingSeverity, HandleTransaction } from "forta-agent";
-// import { Interface } from "ethers/lib/utils";
-// import { createAddress } from "forta-agent-tools";
-// import { TestTransactionEvent } from "forta-agent-tools/lib/test";
-// import { provideHandleTransaction } from "./agent";
-// import { BigNumber } from "ethers";
-// import { EVENTS } from "./constants";
+import { FindingType, FindingSeverity, HandleTransaction } from "forta-agent";
+import { Interface } from "ethers/lib/utils";
+import { createAddress } from "forta-agent-tools";
+import { TestTransactionEvent } from "forta-agent-tools/lib/test";
+import { provideHandleTransaction } from "./agent";
+import { UNISWAP_ROUTER_ABI, SWAP_ROUTER_02 } from "./constants";
+import { BigNumber } from "ethers";
 
-// describe("Nethermind bot deployment to Forta Bot Registry", () => {
-//   let handleTransaction: HandleTransaction;
-//   let mockTxEvent: TestTransactionEvent;
+describe("Uniswap Swap Event Detection", () => {
+  let handleTransaction: HandleTransaction;
+  let mockTxEvent: TestTransactionEvent;
 
-//   const mockNethermindDeployerAddress = createAddress("0x02");
-//   const mockFortaRegistryAddress = createAddress("0x03");
+  const mockSwapRouterAddress = createAddress(SWAP_ROUTER_02);
+  const SWAP_ABI = new Interface(UNISWAP_ROUTER_ABI);
 
-//   const DESTROY_AGENT_SIGNATURE =
-//     "function destroyAgent(uint256 agentId,address ,string metadata,uint256[] chainIds)";
+  const mockExactInputSingleParams = {
+    tokenIn: createAddress("0x01"),
+    tokenOut: createAddress("0x02"),
+    fee: BigNumber.from(3000),
+    recipient: createAddress("0x03"),
+    amountIn: BigNumber.from(1000),
+    amountOutMinimum: BigNumber.from(990),
+    sqrtPriceLimitX96: BigNumber.from(0),
+  };
 
-//   const AGENT_ABI = new Interface([...METHODS]);
-//   const FALSE_ABI = new Interface([DESTROY_AGENT_SIGNATURE]);
+  const mockExactOutputSingleParams = {
+    tokenIn: createAddress("0x04"),
+    tokenOut: createAddress("0x05"),
+    fee: BigNumber.from(1000),
+    recipient: createAddress("0x06"),
+    amountOut: BigNumber.from(2000),
+    amountInMaximum: BigNumber.from(1980),
+    sqrtPriceLimitX96: BigNumber.from(0),
+  };
 
-//   const mockDeploymentTxOne = [
-//     BigNumber.from(1),
-//     mockNethermindDeployerAddress,
-//     "Mock metadata 1",
-//     [BigNumber.from(137)],
-//   ];
+  beforeAll(() => {
+    handleTransaction = provideHandleTransaction(
+      UNISWAP_ROUTER_ABI,
+      mockSwapRouterAddress
+    );
+  });
 
-//   const mockDeploymentTxTwo = [
-//     BigNumber.from(2),
-//     mockNethermindDeployerAddress,
-//     "Mock metadata 2",
-//     [BigNumber.from(137)],
-//   ];
+  beforeEach(() => {
+    mockTxEvent = new TestTransactionEvent();
+  });
 
-//   beforeAll(() => {
-//     handleTransaction = provideHandleTransaction(
-//       METHODS,
-//       mockNethermindDeployerAddress,
-//       mockFortaRegistryAddress
-//     );
-//   });
+  it("returns empty findings if there are no swap events", async () => {
+    const findings = await handleTransaction(mockTxEvent);
+    expect(findings).toStrictEqual([]);
+  });
 
-//   beforeEach(() => {
-//     mockTxEvent = new TestTransactionEvent();
-//   });
+  it("returns correct findings if there is one exactInputSingle swap event", async () => {
+    mockTxEvent = new TestTransactionEvent()
+      .setTo(mockSwapRouterAddress)
+      .setData(
+        SWAP_ABI.encodeFunctionData("exactInputSingle", [
+          mockExactInputSingleParams,
+        ])
+      );
 
-//   it("returns empty findings if there are no bot deployments or updates", async () => {
-//     const findings = await handleTransaction(mockTxEvent);
-//     expect(findings).toStrictEqual([]);
-//   });
+    const findings = await handleTransaction(mockTxEvent);
 
-//   it("returns correct findings if there is one bot deployment from Nethermind", async () => {
-//     mockTxEvent
-//       .setFrom(mockNethermindDeployerAddress)
-//       .setTo(mockFortaRegistryAddress)
-//       .addTraces({
-//         function: AGENT_ABI.getFunction("createAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: mockDeploymentTxOne,
-//       });
+    expect(findings).toStrictEqual([
+      expect.objectContaining({
+        alertId: "FORTA-2",
+        name: "Nethermind Forta Bot UniSwap - exactInputSingle",
+        description: `Swap event detected on ${mockSwapRouterAddress}`,
+        severity: FindingSeverity.Low,
+        type: FindingType.Info,
+        metadata: {
+          tokenIn: mockExactInputSingleParams.tokenIn,
+          tokenOut: mockExactInputSingleParams.tokenOut,
+          fee: mockExactInputSingleParams.fee.toString(),
+          recipient: mockExactInputSingleParams.recipient,
+          amountIn: mockExactInputSingleParams.amountIn.toString(),
+          amountOutMinimum:
+            mockExactInputSingleParams.amountOutMinimum.toString(),
+          sqrtPriceLimitX96:
+            mockExactInputSingleParams.sqrtPriceLimitX96.toString(),
+        },
+      }),
+    ]);
+  });
 
-//     const findings = await handleTransaction(mockTxEvent);
+  it("returns correct findings if there is one exactOutputSingle swap event", async () => {
+    mockTxEvent = new TestTransactionEvent()
+      .setTo(mockSwapRouterAddress)
+      .setData(
+        SWAP_ABI.encodeFunctionData("exactOutputSingle", [
+          mockExactOutputSingleParams,
+        ])
+      );
 
-//     expect(findings).toStrictEqual([
-//       expect.objectContaining({
-//         name: "Nethermind Forta Bot Create Agent",
-//         description: `Bot has been Created by ${mockNethermindDeployerAddress}`,
-//         alertId: "FORTA-1 Create",
-//         severity: FindingSeverity.Low,
-//         type: FindingType.Info,
-//         metadata: {
-//           agentId: mockDeploymentTxOne[0].toString(),
-//           metadata: mockDeploymentTxOne[2],
-//           chainIds: Array(mockDeploymentTxOne[3]).join(", "),
-//         },
-//       }),
-//     ]);
-//   });
+    const findings = await handleTransaction(mockTxEvent);
 
-//   it("returns correct findings if there is one bot updated by Nethermind", async () => {
-//     mockTxEvent
-//       .setFrom(mockNethermindDeployerAddress)
-//       .setTo(mockFortaRegistryAddress)
-//       .addTraces({
-//         function: AGENT_ABI.getFunction("updateAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: [
-//           mockDeploymentTxOne[0],
-//           mockDeploymentTxOne[2],
-//           mockDeploymentTxOne[3],
-//         ],
-//       });
+    expect(findings).toStrictEqual([
+      expect.objectContaining({
+        alertId: "FORTA-2",
+        name: "Nethermind Forta Bot UniSwap - exactOutputSingle",
+        description: `Swap event detected on ${mockSwapRouterAddress}`,
+        severity: FindingSeverity.Low,
+        type: FindingType.Info,
+        metadata: {
+          tokenIn: mockExactOutputSingleParams.tokenIn,
+          tokenOut: mockExactOutputSingleParams.tokenOut,
+          fee: mockExactOutputSingleParams.fee.toString(),
+          recipient: mockExactOutputSingleParams.recipient,
+          amountOut: mockExactOutputSingleParams.amountOut.toString(),
+          amountInMaximum:
+            mockExactOutputSingleParams.amountInMaximum.toString(),
+          sqrtPriceLimitX96:
+            mockExactOutputSingleParams.sqrtPriceLimitX96.toString(),
+        },
+      }),
+    ]);
+  });
 
-//     const findings = await handleTransaction(mockTxEvent);
+  it("returns correct findings if there are multiple swap events", async () => {
+    const txEvent1 = new TestTransactionEvent()
+      .setTo(mockSwapRouterAddress)
+      .setData(
+        SWAP_ABI.encodeFunctionData("exactInputSingle", [
+          mockExactInputSingleParams,
+        ])
+      );
 
-//     expect(findings).toStrictEqual([
-//       expect.objectContaining({
-//         name: "Nethermind Forta Bot Update Agent",
-//         description: `Bot has been updated by ${mockNethermindDeployerAddress}`,
-//         alertId: "FORTA-1 Update",
-//         severity: FindingSeverity.Low,
-//         type: FindingType.Info,
-//         metadata: {
-//           agentId: mockDeploymentTxOne[0].toString(),
-//           metadata: mockDeploymentTxOne[2],
-//           chainIds: Array(mockDeploymentTxOne[3]).join(", "),
-//         },
-//       }),
-//     ]);
-//   });
+    const txEvent2 = new TestTransactionEvent()
+      .setTo(mockSwapRouterAddress)
+      .setData(
+        SWAP_ABI.encodeFunctionData("exactOutputSingle", [
+          mockExactOutputSingleParams,
+        ])
+      );
 
-//   it("returns correct findings if there are multiple bot deployments from Nethermind", async () => {
-//     mockTxEvent
-//       .setFrom(mockNethermindDeployerAddress)
-//       .setTo(mockFortaRegistryAddress)
-//       .addTraces({
-//         function: AGENT_ABI.getFunction("createAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: mockDeploymentTxOne,
-//       })
-//       .addTraces({
-//         function: AGENT_ABI.getFunction("createAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: mockDeploymentTxTwo,
-//       });
+    const findings1 = await handleTransaction(txEvent1);
+    const findings2 = await handleTransaction(txEvent2);
 
-//     const findings = await handleTransaction(mockTxEvent);
+    const findings = [...findings1, ...findings2];
 
-//     expect(findings).toStrictEqual([
-//       expect.objectContaining({
-//         name: "Nethermind Forta Bot Create Agent",
-//         description: `Bot has been Created by ${mockNethermindDeployerAddress}`,
-//         alertId: "FORTA-1 Create",
-//         severity: FindingSeverity.Low,
-//         type: FindingType.Info,
-//         metadata: {
-//           agentId: mockDeploymentTxOne[0].toString(),
-//           metadata: mockDeploymentTxOne[2],
-//           chainIds: Array(mockDeploymentTxOne[3]).join(", "),
-//         },
-//       }),
-//       expect.objectContaining({
-//         name: "Nethermind Forta Bot Create Agent",
-//         description: `Bot has been Created by ${mockNethermindDeployerAddress}`,
-//         alertId: "FORTA-1 Create",
-//         severity: FindingSeverity.Low,
-//         type: FindingType.Info,
-//         metadata: {
-//           agentId: mockDeploymentTxTwo[0].toString(),
-//           metadata: mockDeploymentTxTwo[2],
-//           chainIds: Array(mockDeploymentTxTwo[3]).join(", "),
-//         },
-//       }),
-//     ]);
-//   });
+    expect(findings).toStrictEqual([
+      expect.objectContaining({
+        alertId: "FORTA-2",
+        name: "Nethermind Forta Bot UniSwap - exactInputSingle",
+        description: `Swap event detected on ${mockSwapRouterAddress}`,
+        severity: FindingSeverity.Low,
+        type: FindingType.Info,
+        metadata: {
+          tokenIn: mockExactInputSingleParams.tokenIn,
+          tokenOut: mockExactInputSingleParams.tokenOut,
+          fee: mockExactInputSingleParams.fee.toString(),
+          recipient: mockExactInputSingleParams.recipient,
+          amountIn: mockExactInputSingleParams.amountIn.toString(),
+          amountOutMinimum:
+            mockExactInputSingleParams.amountOutMinimum.toString(),
+          sqrtPriceLimitX96:
+            mockExactInputSingleParams.sqrtPriceLimitX96.toString(),
+        },
+      }),
+      expect.objectContaining({
+        alertId: "FORTA-2",
+        name: "Nethermind Forta Bot UniSwap - exactOutputSingle",
+        description: `Swap event detected on ${mockSwapRouterAddress}`,
+        severity: FindingSeverity.Low,
+        type: FindingType.Info,
+        metadata: {
+          tokenIn: mockExactOutputSingleParams.tokenIn,
+          tokenOut: mockExactOutputSingleParams.tokenOut,
+          fee: mockExactOutputSingleParams.fee.toString(),
+          recipient: mockExactOutputSingleParams.recipient,
+          amountOut: mockExactOutputSingleParams.amountOut.toString(),
+          amountInMaximum:
+            mockExactOutputSingleParams.amountInMaximum.toString(),
+          sqrtPriceLimitX96:
+            mockExactOutputSingleParams.sqrtPriceLimitX96.toString(),
+        },
+      }),
+    ]);
+  });
 
-//   it("returns empty findings if there are deployment or update calls from Nethermind to a different address", async () => {
-//     const testRegistryAddress = createAddress("0x05");
+  it("returns empty findings if the swap event is from a different address", async () => {
+    const differentAddress = createAddress("0x07");
 
-//     mockTxEvent
-//       .setFrom(mockNethermindDeployerAddress)
-//       .setTo(testRegistryAddress)
-//       .addTraces({
-//         function: AGENT_ABI.getFunction("createAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: testRegistryAddress,
-//         arguments: mockDeploymentTxOne,
-//       })
-//       .addTraces({
-//         function: AGENT_ABI.getFunction("updateAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: testRegistryAddress,
-//         arguments: [
-//           mockDeploymentTxTwo[0],
-//           mockDeploymentTxTwo[2],
-//           mockDeploymentTxTwo[3],
-//         ],
-//       });
+    mockTxEvent = new TestTransactionEvent()
+      .setTo(differentAddress)
+      .setData(
+        SWAP_ABI.encodeFunctionData("exactInputSingle", [
+          mockExactInputSingleParams,
+        ])
+      );
 
-//     const findings = await handleTransaction(mockTxEvent);
+    const findings = await handleTransaction(mockTxEvent);
 
-//     expect(findings).toStrictEqual([]);
-//   });
+    expect(findings).toStrictEqual([]);
+  });
 
-//   it("returns empty findings if there is a non-deploy or update call to the registry from Nethermind", async () => {
-//     mockTxEvent
-//       .setFrom(mockNethermindDeployerAddress)
-//       .setTo(mockFortaRegistryAddress)
-//       .addTraces({
-//         function: FALSE_ABI.getFunction("destroyAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: mockDeploymentTxOne,
-//       });
+  it("returns empty findings if the logs do not match the swap event signature", async () => {
+    mockTxEvent = new TestTransactionEvent()
+      .setTo(mockSwapRouterAddress)
+      .setData("0x12345678"); // Random data to simulate unrelated event
 
-//     const findings = await handleTransaction(mockTxEvent);
+    const findings = await handleTransaction(mockTxEvent);
 
-//     expect(findings).toStrictEqual([]);
-//   });
-
-//   it("returns correct findings if there is a mix of update, create and different function calls from Nethermind", async () => {
-//     mockTxEvent
-//       .setFrom(mockNethermindDeployerAddress)
-//       .setTo(mockFortaRegistryAddress)
-//       .addTraces({
-//         function: FALSE_ABI.getFunction("destroyAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: mockDeploymentTxOne,
-//       })
-//       .addTraces({
-//         function: AGENT_ABI.getFunction("createAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: mockDeploymentTxOne,
-//       })
-//       .addTraces({
-//         function: AGENT_ABI.getFunction("updateAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: [
-//           mockDeploymentTxTwo[0],
-//           mockDeploymentTxTwo[2],
-//           mockDeploymentTxTwo[3],
-//         ],
-//       });
-
-//     const findings = await handleTransaction(mockTxEvent);
-
-//     expect(findings).toStrictEqual([
-//       expect.objectContaining({
-//         name: "Nethermind Forta Bot Create Agent",
-//         description: `Bot has been Created by ${mockNethermindDeployerAddress}`,
-//         alertId: "FORTA-1 Create",
-//         severity: FindingSeverity.Low,
-//         type: FindingType.Info,
-//         metadata: {
-//           agentId: mockDeploymentTxOne[0].toString(),
-//           metadata: mockDeploymentTxOne[2],
-//           chainIds: Array(mockDeploymentTxOne[3]).join(", "),
-//         },
-//       }),
-//       expect.objectContaining({
-//         name: "Nethermind Forta Bot Update Agent",
-//         description: `Bot has been updated by ${mockNethermindDeployerAddress}`,
-//         alertId: "FORTA-1 Update",
-//         severity: FindingSeverity.Low,
-//         type: FindingType.Info,
-//         metadata: {
-//           agentId: mockDeploymentTxTwo[0].toString(),
-//           metadata: mockDeploymentTxTwo[2],
-//           chainIds: Array(mockDeploymentTxTwo[3]).join(", "),
-//         },
-//       }),
-//     ]);
-//   });
-
-//   it("returns empty when the deployer account is NOT the Nethermind account", async () => {
-//     const irrevelantAddress = createAddress("0x05");
-
-//     mockTxEvent
-//       .setFrom(irrevelantAddress)
-//       .setTo(mockFortaRegistryAddress)
-//       .addTraces({
-//         function: FALSE_ABI.getFunction("destroyAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: mockDeploymentTxOne,
-//       })
-//       .addTraces({
-//         function: AGENT_ABI.getFunction("createAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: mockDeploymentTxOne,
-//       })
-//       .addTraces({
-//         function: AGENT_ABI.getFunction("updateAgent"),
-//         from: mockNethermindDeployerAddress,
-//         to: mockFortaRegistryAddress,
-//         arguments: [
-//           mockDeploymentTxTwo[0],
-//           mockDeploymentTxTwo[2],
-//           mockDeploymentTxTwo[3],
-//         ],
-//       });
-
-//     const findings = await handleTransaction(mockTxEvent);
-
-//     expect(findings).toStrictEqual([]);
-//   });
-// });
+    expect(findings).toStrictEqual([]);
+  });
+});
