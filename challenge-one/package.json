@@ -1,5 +1,5 @@
 {
-  "name": "forta-challenge-1",
+  "name": "forta-bot-registry-tracker",
   "displayName": "Nethermind Create and Update Forta Bot",
   "version": "0.0.1",
   "description": "Forta Bot that captures creation and update of bots deployed by Nethermind",

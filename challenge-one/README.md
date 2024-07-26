@@ -10,33 +10,27 @@ This agent detects specific transactions related to Nethermind bot deployments a
 
 ## Alerts
 
-- **FORTA-1 Create**
+- **FORTA-CREATE-1**
 
   - Fired when a transaction contains a call to the `createAgent` method from the specified deployer address
   - Severity is always set to "low"
   - Type is always set to "info"
   - Metadata includes `agentId`, `metadata`, and `chainIds`
+    - `agentId` : Newly created bot id.
+    - `metadata` : transaction metadata.
+    - `chainsIds` : list of ids of supported chains.
 
-- **FORTA-1 Update**
+- **FORTA-UPDATE-1**
   - Fired when a transaction contains a call to the `updateAgent` method from the specified deployer address
   - Severity is always set to "low"
   - Type is always set to "info"
   - Metadata includes `agentId`, `metadata`, and `chainIds`
+    - `agentId` : Newly created bot id.
+    - `metadata` : transaction metadata.
+    - `chainsIds` : list of ids of supported chains.
 
-## Usage
+## Test Data
 
-This is a Forta application. You can run it with the following commands:
+The behaviour of the bot can be verified with the following transactions:
 
-1. Install the dependencies:
-
-   ```bash
-   npm i
-   ```
-
-2. Run the tests:
-
-   ```bash
-   npm run test
-   ```
-
-This README file now includes instructions for configuring `forta.config.json` and `package.json` for the Polygon network, ensuring the agent operates correctly with the specified deployer and registry addresses.
+- [0x878cf23f0c3533941bc32f519a982fa294057a33ce52e8943bf03fe62ededeac](https://polygonscan.com//tx/0x878cf23f0c3533941bc32f519a982fa294057a33ce52e8943bf03fe62ededeac)

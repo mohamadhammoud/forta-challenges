@@ -62,12 +62,12 @@ describe("Nethermind bot deployment to Forta Bot Registry", () => {
       });
 
     const findings = await handleTransaction(mockTxEvent);
-
     expect(findings).toStrictEqual([
       expect.objectContaining({
         name: "Nethermind Forta Bot Create Agent",
-        description: `Bot has been Created by ${mockNethermindDeployerAddress}`,
-        alertId: "FORTA-1 Create",
+        // mockDeploymentTxOne[0].toString() is the agentId
+        description: `Bot ${mockDeploymentTxOne[0].toString()} has been Created by ${mockNethermindDeployerAddress}`,
+        alertId: "FORTA-CREATE-1",
         severity: FindingSeverity.Low,
         type: FindingType.Info,
         metadata: {
@@ -99,8 +99,9 @@ describe("Nethermind bot deployment to Forta Bot Registry", () => {
     expect(findings).toStrictEqual([
       expect.objectContaining({
         name: "Nethermind Forta Bot Update Agent",
-        description: `Bot has been updated by ${mockNethermindDeployerAddress}`,
-        alertId: "FORTA-1 Update",
+        // mockDeploymentTxOne[0].toString() is the agentId
+        description: `Bot ${mockDeploymentTxOne[0].toString()} has been updated by ${mockNethermindDeployerAddress}`,
+        alertId: "FORTA-UPDATE-1",
         severity: FindingSeverity.Low,
         type: FindingType.Info,
         metadata: {
@@ -134,8 +135,9 @@ describe("Nethermind bot deployment to Forta Bot Registry", () => {
     expect(findings).toStrictEqual([
       expect.objectContaining({
         name: "Nethermind Forta Bot Create Agent",
-        description: `Bot has been Created by ${mockNethermindDeployerAddress}`,
-        alertId: "FORTA-1 Create",
+        // mockDeploymentTxOne[0].toString() is the agentId
+        description: `Bot ${mockDeploymentTxOne[0].toString()} has been Created by ${mockNethermindDeployerAddress}`,
+        alertId: "FORTA-CREATE-1",
         severity: FindingSeverity.Low,
         type: FindingType.Info,
         metadata: {
@@ -146,8 +148,9 @@ describe("Nethermind bot deployment to Forta Bot Registry", () => {
       }),
       expect.objectContaining({
         name: "Nethermind Forta Bot Create Agent",
-        description: `Bot has been Created by ${mockNethermindDeployerAddress}`,
-        alertId: "FORTA-1 Create",
+        // mockDeploymentTxTwo[0].toString() is the agentId
+        description: `Bot ${mockDeploymentTxTwo[0].toString()} has been Created by ${mockNethermindDeployerAddress}`,
+        alertId: "FORTA-CREATE-1",
         severity: FindingSeverity.Low,
         type: FindingType.Info,
         metadata: {
@@ -231,12 +234,12 @@ describe("Nethermind bot deployment to Forta Bot Registry", () => {
       });
 
     const findings = await handleTransaction(mockTxEvent);
-
     expect(findings).toStrictEqual([
       expect.objectContaining({
         name: "Nethermind Forta Bot Create Agent",
-        description: `Bot has been Created by ${mockNethermindDeployerAddress}`,
-        alertId: "FORTA-1 Create",
+        // mockDeploymentTxOne[0].toString() is the agentId
+        description: `Bot ${mockDeploymentTxOne[0].toString()} has been Created by ${mockNethermindDeployerAddress}`,
+        alertId: "FORTA-CREATE-1",
         severity: FindingSeverity.Low,
         type: FindingType.Info,
         metadata: {
@@ -247,8 +250,9 @@ describe("Nethermind bot deployment to Forta Bot Registry", () => {
       }),
       expect.objectContaining({
         name: "Nethermind Forta Bot Update Agent",
-        description: `Bot has been updated by ${mockNethermindDeployerAddress}`,
-        alertId: "FORTA-1 Update",
+        // mockDeploymentTxTwo[0].toString() is the agentId
+        description: `Bot ${mockDeploymentTxTwo[0].toString()} has been updated by ${mockNethermindDeployerAddress}`,
+        alertId: "FORTA-UPDATE-1",
         severity: FindingSeverity.Low,
         type: FindingType.Info,
         metadata: {

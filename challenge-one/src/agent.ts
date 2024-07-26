@@ -12,8 +12,6 @@ import {
   NETHERMIND_DEPLOY_ADDRESS,
 } from "./constants";
 
-let findingsCount = 0;
-
 export const provideHandleTransaction = (
   methods: string[],
   nethermindDeployAddress: string,
@@ -38,8 +36,8 @@ export const provideHandleTransaction = (
         findings.push(
           Finding.fromObject({
             name: "Nethermind Forta Bot Create Agent",
-            description: `Bot has been Created by ${nethermindDeployAddress}`,
-            alertId: "FORTA-1 Create",
+            description: `Bot ${agentId} has been Created by ${nethermindDeployAddress}`,
+            alertId: "FORTA-CREATE-1",
             severity: FindingSeverity.Low,
             type: FindingType.Info,
             metadata: {
@@ -49,15 +47,13 @@ export const provideHandleTransaction = (
             },
           })
         );
-        findingsCount++;
-      }
-
-      if (call.name === "updateAgent") {
+      } else {
+        // call.name === "updateAgent"
         findings.push(
           Finding.fromObject({
             name: "Nethermind Forta Bot Update Agent",
-            description: `Bot has been updated by ${nethermindDeployAddress}`,
-            alertId: "FORTA-1 Update",
+            description: `Bot ${agentId} has been updated by ${nethermindDeployAddress}`,
+            alertId: "FORTA-UPDATE-1",
             severity: FindingSeverity.Low,
             type: FindingType.Info,
             metadata: {
@@ -67,7 +63,6 @@ export const provideHandleTransaction = (
             },
           })
         );
-        findingsCount++;
       }
     });
 
@@ -78,7 +73,7 @@ export const provideHandleTransaction = (
 export default {
   handleTransaction: provideHandleTransaction(
     METHODS,
-    FORTA_REGISTRY_ADDRESS,
-    NETHERMIND_DEPLOY_ADDRESS
+    NETHERMIND_DEPLOY_ADDRESS,
+    FORTA_REGISTRY_ADDRESS
   ),
 };
