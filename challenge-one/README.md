@@ -33,4 +33,6 @@ This agent detects specific transactions related to Nethermind bot deployments a
 
 The behaviour of the bot can be verified with the following transactions:
 
-- [0x878cf23f0c3533941bc32f519a982fa294057a33ce52e8943bf03fe62ededeac](https://polygonscan.com//tx/0x878cf23f0c3533941bc32f519a982fa294057a33ce52e8943bf03fe62ededeac)
+- [0x878cf23f0c3533941bc32f519a982fa294057a33ce52e8943bf03fe62ededeac](https://polygonscan.com//tx/0x878cf23f0c3533941bc32f519a982fa294057a33ce52e8943bf03fe62ededeac) - `updateAgent`
+
+- [0x6a72649c16d5246a207abdef78c8ce2148ed67c6c8a672bdac85e4c6ea2bdac8](https://polygonscan.com//tx/0x6a72649c16d5246a207abdef78c8ce2148ed67c6c8a672bdac85e4c6ea2bdac8) - `createAgent`
