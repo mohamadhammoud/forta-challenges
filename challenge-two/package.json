@@ -1,14 +1,19 @@
 {
-  "name": "forta-challenge-2",
-  "displayName": "Nethermind Uniswap Forta Bot",
+  "name": "forta-bot-uniswap-tracker",
+  "displayName": "Uniswap Forta Bot",
   "version": "0.0.1",
-  "description": "Forta Bot that captures creation and update of bots deployed by Nethermind",
-  "longDescription": "This Forta Bot searches for transactions to the Forta Bot Registry that are sent from Nethermind's deployment address. The transactions are further filtered to provide alerts in the cases that a new bot is deployed, or a pre-existing bot is updated.",
+  "description": "Forta Bot monitoring Uniswap V3 pool transactions",
+  "longDescription": "This Forta Bot detects and alerts on swap events occurring in Uniswap V3 pools. It monitors transactions for interactions with Uniswap V3 pools, identifying valid swap events and providing detailed alerts. The bot verifies that these transactions are legitimate by checking against the Uniswap V3 factory contract, ensuring accurate event detection.",
   "repository": "https://github.com/forta-network/forta-bot-sdk/tree/master/starter-project",
   "licenseUrl": "https://github.com/forta-network/forta-bot-sdk/blob/master/starter-project/LICENSE.md",
   "promoUrl": "https://forta.org",
   "chainIds": [
-    137
+    1,   
+   137,  
+   10,   
+   42161,
+   42220,
+   8453  
   ],
   "scripts": {
     "build": "tsc",
