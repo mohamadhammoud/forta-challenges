@@ -5,77 +5,78 @@ import {
   FindingSeverity,
   FindingType,
 } from "forta-agent";
-import { UNISWAP_ROUTER_ABI, SWAP_ROUTER_02 } from "./constants";
+import { ethers } from "ethers";
+import { UNISWAP_V3_POOL_ABI, UNISWAP_V3_FACTORY_ADDRESS } from "./constants";
+import dotenv from "dotenv";
+
+// Load environment variables from .env file
+dotenv.config();
+
+const { RPC_PROVIDER_URL } = process.env;
 
 export const provideHandleTransaction = (
-  abi: any,
-  swapRouter02Address: string
+  provider: ethers.providers.Provider
 ): HandleTransaction => {
   return async (txEvent: TransactionEvent) => {
     const findings: Finding[] = [];
-    const lowerCaseSwapRouter02Address = swapRouter02Address.toLowerCase();
 
-    // Filter transaction events by logs that match the swap events and router address
-    const swapLogs = txEvent.filterFunction(abi, lowerCaseSwapRouter02Address);
+    // Filter logs for Swap events by checking the first topic (event signature)
+    const swapEventSignature = ethers.utils.id(
+      "Swap(address,address,int256,int256,uint160,uint128,int24)"
+    );
 
-    swapLogs.forEach((swap) => {
-      if (swap?.name === "exactInputSingle") {
-        // Extract swap event arguments
-        const tokenIn = swap.args.params["tokenIn"];
-        const tokenOut = swap.args.params["tokenOut"];
-        const fee = swap.args.params["fee"];
-        const recipient = swap.args.params["recipient"];
-        const amountIn = swap.args.params["amountIn"];
-        const amountOutMinimum = swap.args.params["amountOutMinimum"];
-        const sqrtPriceLimitX96 = swap.args.params["sqrtPriceLimitX96"];
+    const swapLogs = txEvent.logs.filter(
+      (log) => log.topics[0] === swapEventSignature
+    );
+
+    for (const log of swapLogs) {
+      try {
+        const poolContract = new ethers.Contract(
+          log.address,
+          UNISWAP_V3_POOL_ABI,
+          provider
+        );
+
+        // Check if the log is from a valid Uniswap V3 pool
+        const poolFactory: string = await poolContract.callStatic.factory();
+
+        if (
+          poolFactory.toLowerCase() !== UNISWAP_V3_FACTORY_ADDRESS.toLowerCase()
+        ) {
+          // This is not a valid Uniswap V3 pool
+          continue;
+        }
+
+        // Decode the log using the ABI
+        const decodedLog = new ethers.utils.Interface(
+          UNISWAP_V3_POOL_ABI
+        ).parseLog(log);
+
+        const { sender, recipient, amount0, amount1, sqrtPriceX96, liquidity } =
+          decodedLog.args;
 
         findings.push(
           Finding.fromObject({
-            alertId: "FORTA-2",
-            name: "Nethermind Forta Bot UniSwap - exactInputSingle",
-            description: `Swap event detected on ${swapRouter02Address}`,
+            alertId: "FORTA-3",
+            name: "Uniswap V3 Pool Swap Detected",
+            description: `Swap event detected in Uniswap V3 pool at ${log.address}`,
             severity: FindingSeverity.Low,
             type: FindingType.Info,
             metadata: {
-              tokenIn: tokenIn,
-              tokenOut: tokenOut,
-              fee: fee.toString(),
+              poolAddress: log.address,
+              sender,
               recipient,
-              amountIn: amountIn.toString(),
-              amountOutMinimum: amountOutMinimum.toString(),
-              sqrtPriceLimitX96: sqrtPriceLimitX96.toString(),
+              amount0: amount0.toString(),
+              amount1: amount1.toString(),
+              sqrtPriceX96: sqrtPriceX96.toString(),
+              liquidity: liquidity.toString(),
             },
           })
         );
-      } else if (swap?.name === "exactOutputSingle") {
-        const tokenIn = swap.args.params["tokenIn"];
-        const tokenOut = swap.args.params["tokenOut"];
-        const fee = swap.args.params["fee"];
-        const recipient = swap.args.params["recipient"];
-        const amountOut = swap.args.params["amountOut"];
-        const amountInMaximum = swap.args.params["amountInMaximum"];
-        const sqrtPriceLimitX96 = swap.args.params["sqrtPriceLimitX96"];
-
-        findings.push(
-          Finding.fromObject({
-            alertId: "FORTA-2",
-            name: "Nethermind Forta Bot UniSwap - exactOutputSingle",
-            description: `Swap event detected on ${swapRouter02Address}`,
-            severity: FindingSeverity.Low,
-            type: FindingType.Info,
-            metadata: {
-              tokenIn: tokenIn,
-              tokenOut: tokenOut,
-              fee: fee.toString(),
-              recipient,
-              amountOut: amountOut.toString(),
-              amountInMaximum: amountInMaximum.toString(),
-              sqrtPriceLimitX96: sqrtPriceLimitX96.toString(),
-            },
-          })
-        );
+      } catch (error) {
+        console.error("Error processing swap log:", error);
       }
-    });
+    }
 
     return findings;
   };
@@ -83,7 +84,6 @@ export const provideHandleTransaction = (
 
 export default {
   handleTransaction: provideHandleTransaction(
-    UNISWAP_ROUTER_ABI,
-    SWAP_ROUTER_02
+    new ethers.providers.JsonRpcProvider(RPC_PROVIDER_URL)
   ),
 };
