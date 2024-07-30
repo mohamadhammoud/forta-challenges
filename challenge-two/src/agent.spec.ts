@@ -1,205 +1,209 @@
-// import { FindingType, FindingSeverity, HandleTransaction } from "forta-agent";
-// import { Interface } from "ethers/lib/utils";
-// import { createAddress } from "forta-agent-tools";
-// import { TestTransactionEvent } from "forta-agent-tools/lib/test";
-// import { provideHandleTransaction } from "./agent";
-// import { UNISWAP_ROUTER_ABI, SWAP_ROUTER_02 } from "./constants";
-// import { BigNumber } from "ethers";
+import { FindingType, FindingSeverity, HandleTransaction } from "forta-agent";
+import { Interface } from "ethers/lib/utils";
+import { createAddress } from "forta-agent-tools";
+import { TestTransactionEvent } from "forta-agent-tools/lib/test";
+import { ethers } from "ethers";
+import { provideHandleTransaction } from "./agent";
+import {
+  UNISWAP_V3_POOL_ABI,
+  UNISWAP_V3_FACTORY_ADDRESS,
+  SWAP_EVENT,
+} from "./constants";
 
-// describe("Uniswap Swap Event Detection", () => {
-//   let handleTransaction: HandleTransaction;
-//   let mockTxEvent: TestTransactionEvent;
+describe("Uniswap V3 Pool Swap Event Detection", () => {
+  let handleTransaction: HandleTransaction;
+  let mockProvider: ethers.providers.Provider;
 
-//   const mockSwapRouterAddress = createAddress(SWAP_ROUTER_02);
-//   const SWAP_ABI = new Interface(UNISWAP_ROUTER_ABI);
+  const SWAP_ABI = new Interface(UNISWAP_V3_POOL_ABI);
 
-//   const mockExactInputSingleParams = {
-//     tokenIn: createAddress("0x01"),
-//     tokenOut: createAddress("0x02"),
-//     fee: BigNumber.from(3000),
-//     recipient: createAddress("0x03"),
-//     amountIn: BigNumber.from(1000),
-//     amountOutMinimum: BigNumber.from(990),
-//     sqrtPriceLimitX96: BigNumber.from(0),
-//   };
+  const TEST_VAL1 = {
+    TOKEN0_ADDR: createAddress("0x01"),
+    TOKEN0_VAL: ethers.BigNumber.from("100"),
+    TOKEN1_ADDR: createAddress("0x02"),
+    TOKEN1_VAL: ethers.BigNumber.from("400"),
+    POOL_ADDR: createAddress("0x03"),
+    Fee: ethers.BigNumber.from("3000"),
+  };
 
-//   const mockExactOutputSingleParams = {
-//     tokenIn: createAddress("0x04"),
-//     tokenOut: createAddress("0x05"),
-//     fee: BigNumber.from(1000),
-//     recipient: createAddress("0x06"),
-//     amountOut: BigNumber.from(2000),
-//     amountInMaximum: BigNumber.from(1980),
-//     sqrtPriceLimitX96: BigNumber.from(0),
-//   };
+  const TEST_VAL2 = {
+    TOKEN2_ADDR: createAddress("0x04"),
+    TOKEN2_VAL: ethers.BigNumber.from("100"),
+    TOKEN3_ADDR: createAddress("0x05"),
+    TOKEN3_VAL: ethers.BigNumber.from("400"),
+    POOL_ADDR2: createAddress("0x06"),
+    Fee: ethers.BigNumber.from("500"),
+  };
 
-//   beforeAll(() => {
-//     handleTransaction = provideHandleTransaction(
-//       UNISWAP_ROUTER_ABI,
-//       mockSwapRouterAddress
-//     );
-//   });
+  beforeAll(() => {
+    mockProvider = new ethers.providers.JsonRpcProvider(
+      "http://localhost:8545"
+    );
+    handleTransaction = provideHandleTransaction(mockProvider);
+  });
 
-//   beforeEach(() => {
-//     mockTxEvent = new TestTransactionEvent();
-//   });
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
 
-//   it("returns empty findings if there are no swap events", async () => {
-//     const findings = await handleTransaction(mockTxEvent);
-//     expect(findings).toStrictEqual([]);
-//   });
+  it("returns empty findings if there are no swap events", async () => {
+    const txEvent = new TestTransactionEvent();
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([]);
+  });
 
-//   it("returns correct findings if there is one exactInputSingle swap event", async () => {
-//     mockTxEvent = new TestTransactionEvent()
-//       .setTo(mockSwapRouterAddress)
-//       .setData(
-//         SWAP_ABI.encodeFunctionData("exactInputSingle", [
-//           mockExactInputSingleParams,
-//         ])
-//       );
+  it("returns correct findings if there is a valid swap event from a Uniswap V3 pool", async () => {
+    // Create a mock contract instance for the pool
+    const mockPoolContract = {
+      callStatic: {
+        factory: jest.fn().mockResolvedValue(UNISWAP_V3_FACTORY_ADDRESS),
+      },
+    };
 
-//     const findings = await handleTransaction(mockTxEvent);
+    // Mock ethers.Contract to return the mockPoolContract
+    jest
+      .spyOn(ethers, "Contract")
+      .mockImplementation(() => mockPoolContract as any);
 
-//     expect(findings).toStrictEqual([
-//       expect.objectContaining({
-//         alertId: "FORTA-2",
-//         name: "Nethermind Forta Bot UniSwap - exactInputSingle",
-//         description: `Swap event detected on ${mockSwapRouterAddress}`,
-//         severity: FindingSeverity.Low,
-//         type: FindingType.Info,
-//         metadata: {
-//           tokenIn: mockExactInputSingleParams.tokenIn,
-//           tokenOut: mockExactInputSingleParams.tokenOut,
-//           fee: mockExactInputSingleParams.fee.toString(),
-//           recipient: mockExactInputSingleParams.recipient,
-//           amountIn: mockExactInputSingleParams.amountIn.toString(),
-//           amountOutMinimum:
-//             mockExactInputSingleParams.amountOutMinimum.toString(),
-//           sqrtPriceLimitX96:
-//             mockExactInputSingleParams.sqrtPriceLimitX96.toString(),
-//         },
-//       }),
-//     ]);
-//   });
+    // Create a fake swap log event
+    const txEvent = new TestTransactionEvent()
+      .setTo(TEST_VAL1.POOL_ADDR)
+      .addEventLog(SWAP_ABI.getEvent("Swap"), TEST_VAL1.POOL_ADDR, [
+        TEST_VAL1.TOKEN0_ADDR,
+        TEST_VAL1.TOKEN1_ADDR,
+        TEST_VAL1.TOKEN0_VAL,
+        TEST_VAL1.TOKEN1_VAL,
+        ethers.BigNumber.from(10), // sqrtPriceX96
+        ethers.BigNumber.from(1000), // liquidity
+        ethers.BigNumber.from(1), // tick
+      ]);
 
-//   it("returns correct findings if there is one exactOutputSingle swap event", async () => {
-//     mockTxEvent = new TestTransactionEvent()
-//       .setTo(mockSwapRouterAddress)
-//       .setData(
-//         SWAP_ABI.encodeFunctionData("exactOutputSingle", [
-//           mockExactOutputSingleParams,
-//         ])
-//       );
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([
+      expect.objectContaining({
+        alertId: "FORTA-3",
+        name: "Uniswap V3 Pool Swap Detected",
+        description: `Swap event detected in Uniswap V3 pool at ${TEST_VAL1.POOL_ADDR}`,
+        severity: FindingSeverity.Low,
+        type: FindingType.Info,
+        metadata: {
+          poolAddress: TEST_VAL1.POOL_ADDR,
+          sender: expect.any(String),
+          recipient: expect.any(String),
+          amount0: TEST_VAL1.TOKEN0_VAL.toString(),
+          amount1: TEST_VAL1.TOKEN1_VAL.toString(),
+          sqrtPriceX96: "10",
+          liquidity: "1000",
+        },
+      }),
+    ]);
+  });
 
-//     const findings = await handleTransaction(mockTxEvent);
+  it("returns multiple findings if there are multiple valid swap events from different Uniswap V3 pools", async () => {
+    // Create mock contract instances for the pools
+    const mockPoolContract1 = {
+      callStatic: {
+        factory: jest.fn().mockResolvedValue(UNISWAP_V3_FACTORY_ADDRESS),
+      },
+    };
 
-//     expect(findings).toStrictEqual([
-//       expect.objectContaining({
-//         alertId: "FORTA-2",
-//         name: "Nethermind Forta Bot UniSwap - exactOutputSingle",
-//         description: `Swap event detected on ${mockSwapRouterAddress}`,
-//         severity: FindingSeverity.Low,
-//         type: FindingType.Info,
-//         metadata: {
-//           tokenIn: mockExactOutputSingleParams.tokenIn,
-//           tokenOut: mockExactOutputSingleParams.tokenOut,
-//           fee: mockExactOutputSingleParams.fee.toString(),
-//           recipient: mockExactOutputSingleParams.recipient,
-//           amountOut: mockExactOutputSingleParams.amountOut.toString(),
-//           amountInMaximum:
-//             mockExactOutputSingleParams.amountInMaximum.toString(),
-//           sqrtPriceLimitX96:
-//             mockExactOutputSingleParams.sqrtPriceLimitX96.toString(),
-//         },
-//       }),
-//     ]);
-//   });
+    const mockPoolContract2 = {
+      callStatic: {
+        factory: jest.fn().mockResolvedValue(UNISWAP_V3_FACTORY_ADDRESS),
+      },
+    };
 
-//   it("returns correct findings if there are multiple swap events", async () => {
-//     const txEvent1 = new TestTransactionEvent()
-//       .setTo(mockSwapRouterAddress)
-//       .setData(
-//         SWAP_ABI.encodeFunctionData("exactInputSingle", [
-//           mockExactInputSingleParams,
-//         ])
-//       );
+    // Mock ethers.Contract to return the respective mockPoolContract
+    jest
+      .spyOn(ethers, "Contract")
+      .mockImplementationOnce(() => mockPoolContract1 as any)
+      .mockImplementationOnce(() => mockPoolContract2 as any);
 
-//     const txEvent2 = new TestTransactionEvent()
-//       .setTo(mockSwapRouterAddress)
-//       .setData(
-//         SWAP_ABI.encodeFunctionData("exactOutputSingle", [
-//           mockExactOutputSingleParams,
-//         ])
-//       );
+    // Create a transaction event with swap logs from two different pools
+    const txEvent = new TestTransactionEvent()
+      .setTo(TEST_VAL1.POOL_ADDR)
+      .addEventLog(SWAP_ABI.getEvent("Swap"), TEST_VAL1.POOL_ADDR, [
+        TEST_VAL1.TOKEN0_ADDR,
+        TEST_VAL1.TOKEN1_ADDR,
+        TEST_VAL1.TOKEN0_VAL,
+        TEST_VAL1.TOKEN1_VAL,
+        ethers.BigNumber.from(10), // sqrtPriceX96
+        ethers.BigNumber.from(1000), // liquidity
+        ethers.BigNumber.from(1), // tick
+      ])
+      .addEventLog(SWAP_ABI.getEvent("Swap"), TEST_VAL2.POOL_ADDR2, [
+        TEST_VAL2.TOKEN2_ADDR,
+        TEST_VAL2.TOKEN3_ADDR,
+        TEST_VAL2.TOKEN2_VAL,
+        TEST_VAL2.TOKEN3_VAL,
+        ethers.BigNumber.from(10), // sqrtPriceX96
+        ethers.BigNumber.from(1000), // liquidity
+        ethers.BigNumber.from(1), // tick
+      ]);
 
-//     const findings1 = await handleTransaction(txEvent1);
-//     const findings2 = await handleTransaction(txEvent2);
+    const findings = await handleTransaction(txEvent);
+    expect(findings.length).toBe(2);
+    expect(findings[0]).toMatchObject({
+      alertId: "FORTA-3",
+      name: "Uniswap V3 Pool Swap Detected",
+      description: `Swap event detected in Uniswap V3 pool at ${TEST_VAL1.POOL_ADDR}`,
+      severity: FindingSeverity.Low,
+      type: FindingType.Info,
+      metadata: {
+        poolAddress: TEST_VAL1.POOL_ADDR,
+        sender: expect.any(String),
+        recipient: expect.any(String),
+        amount0: TEST_VAL1.TOKEN0_VAL.toString(),
+        amount1: TEST_VAL1.TOKEN1_VAL.toString(),
+        sqrtPriceX96: "10",
+        liquidity: "1000",
+      },
+    });
+    expect(findings[1]).toMatchObject({
+      alertId: "FORTA-3",
+      name: "Uniswap V3 Pool Swap Detected",
+      description: `Swap event detected in Uniswap V3 pool at ${TEST_VAL2.POOL_ADDR2}`,
+      severity: FindingSeverity.Low,
+      type: FindingType.Info,
+      metadata: {
+        poolAddress: TEST_VAL2.POOL_ADDR2,
+        sender: expect.any(String),
+        recipient: expect.any(String),
+        amount0: TEST_VAL2.TOKEN2_VAL.toString(),
+        amount1: TEST_VAL2.TOKEN3_VAL.toString(),
+        sqrtPriceX96: "10",
+        liquidity: "1000",
+      },
+    });
+  });
 
-//     const findings = [...findings1, ...findings2];
+  it("returns empty findings if the swap event is from a non-Uniswap V3 pool", async () => {
+    const mockPoolContract = {
+      callStatic: {
+        factory: jest.fn().mockResolvedValue(createAddress("0x00")),
+      },
+    };
 
-//     expect(findings).toStrictEqual([
-//       expect.objectContaining({
-//         alertId: "FORTA-2",
-//         name: "Nethermind Forta Bot UniSwap - exactInputSingle",
-//         description: `Swap event detected on ${mockSwapRouterAddress}`,
-//         severity: FindingSeverity.Low,
-//         type: FindingType.Info,
-//         metadata: {
-//           tokenIn: mockExactInputSingleParams.tokenIn,
-//           tokenOut: mockExactInputSingleParams.tokenOut,
-//           fee: mockExactInputSingleParams.fee.toString(),
-//           recipient: mockExactInputSingleParams.recipient,
-//           amountIn: mockExactInputSingleParams.amountIn.toString(),
-//           amountOutMinimum:
-//             mockExactInputSingleParams.amountOutMinimum.toString(),
-//           sqrtPriceLimitX96:
-//             mockExactInputSingleParams.sqrtPriceLimitX96.toString(),
-//         },
-//       }),
-//       expect.objectContaining({
-//         alertId: "FORTA-2",
-//         name: "Nethermind Forta Bot UniSwap - exactOutputSingle",
-//         description: `Swap event detected on ${mockSwapRouterAddress}`,
-//         severity: FindingSeverity.Low,
-//         type: FindingType.Info,
-//         metadata: {
-//           tokenIn: mockExactOutputSingleParams.tokenIn,
-//           tokenOut: mockExactOutputSingleParams.tokenOut,
-//           fee: mockExactOutputSingleParams.fee.toString(),
-//           recipient: mockExactOutputSingleParams.recipient,
-//           amountOut: mockExactOutputSingleParams.amountOut.toString(),
-//           amountInMaximum:
-//             mockExactOutputSingleParams.amountInMaximum.toString(),
-//           sqrtPriceLimitX96:
-//             mockExactOutputSingleParams.sqrtPriceLimitX96.toString(),
-//         },
-//       }),
-//     ]);
-//   });
+    jest
+      .spyOn(ethers, "Contract")
+      .mockImplementation(() => mockPoolContract as any);
 
-//   it("returns empty findings if the swap event is from a different address", async () => {
-//     const differentAddress = createAddress("0x07");
+    const txEvent = new TestTransactionEvent()
+      .setTo(TEST_VAL1.POOL_ADDR)
+      .addEventLog(SWAP_ABI.getEvent("Swap"), TEST_VAL1.POOL_ADDR, [
+        TEST_VAL1.TOKEN0_ADDR,
+        TEST_VAL1.TOKEN1_ADDR,
+        TEST_VAL1.TOKEN0_VAL,
+        TEST_VAL1.TOKEN1_VAL,
+        ethers.BigNumber.from(10), // sqrtPriceX96
+        ethers.BigNumber.from(1000), // liquidity
+        ethers.BigNumber.from(1), // tick
+      ]);
 
-//     mockTxEvent = new TestTransactionEvent()
-//       .setTo(differentAddress)
-//       .setData(
-//         SWAP_ABI.encodeFunctionData("exactInputSingle", [
-//           mockExactInputSingleParams,
-//         ])
-//       );
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([]);
+  });
 
-//     const findings = await handleTransaction(mockTxEvent);
-
-//     expect(findings).toStrictEqual([]);
-//   });
-
-//   it("returns empty findings if the logs do not match the swap event signature", async () => {
-//     mockTxEvent = new TestTransactionEvent()
-//       .setTo(mockSwapRouterAddress)
-//       .setData("0x12345678"); // Random data to simulate unrelated event
-
-//     const findings = await handleTransaction(mockTxEvent);
-
-//     expect(findings).toStrictEqual([]);
-//   });
-// });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+});

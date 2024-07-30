@@ -1,4 +1,11 @@
+import { ethers } from "forta-agent";
+
 export const SWAP_ROUTER_02 = "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45";
+
+export const SWAP_EVENT =
+  "Swap(address,address,int256,int256,uint160,uint128,int24)";
+
+export const SWAP_EVENT_SIGNATURE = ethers.utils.id(SWAP_EVENT);
 
 export const UNISWAP_V3_FACTORY_ADDRESS =
   "0x1F98431c8aD98523631AE4a59f267346ea31F984";

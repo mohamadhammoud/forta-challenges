@@ -6,7 +6,11 @@ import {
   FindingType,
 } from "forta-agent";
 import { ethers } from "ethers";
-import { UNISWAP_V3_POOL_ABI, UNISWAP_V3_FACTORY_ADDRESS } from "./constants";
+import {
+  UNISWAP_V3_POOL_ABI,
+  UNISWAP_V3_FACTORY_ADDRESS,
+  SWAP_EVENT_SIGNATURE,
+} from "./constants";
 import dotenv from "dotenv";
 
 // Load environment variables from .env file
@@ -15,18 +19,14 @@ dotenv.config();
 const { RPC_PROVIDER_URL } = process.env;
 
 export const provideHandleTransaction = (
-  provider: ethers.providers.Provider
+  provider: ethers.providers.Provider | any
 ): HandleTransaction => {
   return async (txEvent: TransactionEvent) => {
     const findings: Finding[] = [];
 
     // Filter logs for Swap events by checking the first topic (event signature)
-    const swapEventSignature = ethers.utils.id(
-      "Swap(address,address,int256,int256,uint160,uint128,int24)"
-    );
-
     const swapLogs = txEvent.logs.filter(
-      (log) => log.topics[0] === swapEventSignature
+      (log) => log.topics[0] === SWAP_EVENT_SIGNATURE
     );
 
     for (const log of swapLogs) {
