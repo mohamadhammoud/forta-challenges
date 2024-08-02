@@ -10,8 +10,6 @@ This Forta Bot monitors the Polygon network for swap events occurring in Uniswap
 - Polygon (Chain ID: 137)
 - Optimism (Chain ID: 10)
 - Arbitrum (Chain ID: 42161)
-- Celo (Chain ID: 42220)
-- Base (Chain ID: 8453)
 
 ## Alerts
 
@@ -35,7 +33,3 @@ This Forta Bot monitors the Polygon network for swap events occurring in Uniswap
 The bot's functionality can be verified with the following test transactions:
 
 - [0x4452848af5e7858b278d464cf3d7d4f85da54b97ddf30bcefbdeda9a9bc22510](https://polygonscan.com/tx/0x4452848af5e7858b278d464cf3d7d4f85da54b97ddf30bcefbdeda9a9bc22510) - Swap event in a Uniswap V3 pool
-
-## Development
-
-This bot is developed to ensure accurate monitoring of Uniswap V3 swap events, utilizing ethers.js for contract interaction and Forta's detection framework to trigger alerts based on transaction data.
