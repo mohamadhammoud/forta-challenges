@@ -4,6 +4,7 @@ import {
   TransactionEvent,
   FindingSeverity,
   FindingType,
+  getEthersProvider,
 } from "forta-agent";
 import { ethers } from "ethers";
 import {
@@ -12,13 +13,8 @@ import {
   UNISWAP_V3_FACTORY_ADDRESS,
   SWAP_EVENT_SIGNATURE,
 } from "./constants";
-import dotenv from "dotenv";
 
-// Load environment variables from .env file
-dotenv.config();
-
-const { RPC_PROVIDER_URL } = process.env;
-const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDER_URL);
+const provider = getEthersProvider();
 
 const factoryContract = new ethers.Contract(
   UNISWAP_V3_FACTORY_ADDRESS,
