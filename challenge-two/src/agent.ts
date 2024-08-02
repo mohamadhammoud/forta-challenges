@@ -8,6 +8,7 @@ import {
 import { ethers } from "ethers";
 import {
   UNISWAP_V3_POOL_ABI,
+  UNISWAP_V3_FACTORY_ABI,
   UNISWAP_V3_FACTORY_ADDRESS,
   SWAP_EVENT_SIGNATURE,
 } from "./constants";
@@ -17,10 +18,15 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const { RPC_PROVIDER_URL } = process.env;
+const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDER_URL);
 
-export const provideHandleTransaction = (
-  provider: ethers.providers.Provider | any
-): HandleTransaction => {
+const factoryContract = new ethers.Contract(
+  UNISWAP_V3_FACTORY_ADDRESS,
+  UNISWAP_V3_FACTORY_ABI,
+  provider
+);
+
+export const provideHandleTransaction = (): HandleTransaction => {
   return async (txEvent: TransactionEvent) => {
     const findings: Finding[] = [];
 
@@ -31,19 +37,26 @@ export const provideHandleTransaction = (
 
     for (const log of swapLogs) {
       try {
+        const poolAddress = log.address;
         const poolContract = new ethers.Contract(
-          log.address,
+          poolAddress,
           UNISWAP_V3_POOL_ABI,
           provider
         );
 
-        // Check if the log is from a valid Uniswap V3 pool
-        const poolFactory: string = await poolContract.callStatic.factory();
+        // Validate the pool's legitimacy by confirming it was created by the Uniswap V3 factory
+        const token0 = await poolContract.token0();
+        const token1 = await poolContract.token1();
+        const fee = await poolContract.fee();
 
-        if (
-          poolFactory.toLowerCase() !== UNISWAP_V3_FACTORY_ADDRESS.toLowerCase()
-        ) {
-          // This is not a valid Uniswap V3 pool
+        const derivedPoolAddress = await factoryContract.getPool(
+          token0,
+          token1,
+          fee
+        );
+
+        if (derivedPoolAddress.toLowerCase() !== poolAddress.toLowerCase()) {
+          // The pool address doesn't match the one derived from the factory, ignore this log
           continue;
         }
 
@@ -59,11 +72,11 @@ export const provideHandleTransaction = (
           Finding.fromObject({
             alertId: "FORTA-3",
             name: "Uniswap V3 Pool Swap Detected",
-            description: `Swap event detected in Uniswap V3 pool at ${log.address}`,
+            description: `Swap event detected in Uniswap V3 pool at ${poolAddress}`,
             severity: FindingSeverity.Low,
             type: FindingType.Info,
             metadata: {
-              poolAddress: log.address,
+              poolAddress,
               sender,
               recipient,
               amount0: amount0.toString(),
@@ -83,7 +96,5 @@ export const provideHandleTransaction = (
 };
 
 export default {
-  handleTransaction: provideHandleTransaction(
-    new ethers.providers.JsonRpcProvider(RPC_PROVIDER_URL)
-  ),
+  handleTransaction: provideHandleTransaction(),
 };
