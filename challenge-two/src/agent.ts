@@ -41,15 +41,33 @@ export const provideHandleTransaction = (): HandleTransaction => {
         );
 
         // Validate the pool's legitimacy by confirming it was created by the Uniswap V3 factory
-        const token0 = await poolContract.token0();
-        const token1 = await poolContract.token1();
-        const fee = await poolContract.fee();
+        let token0, token1, fee;
+        try {
+          token0 = await poolContract.token0();
+          token1 = await poolContract.token1();
+          fee = await poolContract.fee();
+        } catch (err) {
+          console.error(
+            `Error fetching token details from pool at ${poolAddress}:`,
+            err
+          );
+          continue; // Skip this pool if fetching details fails
+        }
 
-        const derivedPoolAddress = await factoryContract.getPool(
-          token0,
-          token1,
-          fee
-        );
+        let derivedPoolAddress;
+        try {
+          derivedPoolAddress = await factoryContract.getPool(
+            token0,
+            token1,
+            fee
+          );
+        } catch (err) {
+          console.error(
+            `Error verifying pool creation at ${poolAddress}:`,
+            err
+          );
+          continue; // Skip this pool if verification fails
+        }
 
         if (derivedPoolAddress.toLowerCase() !== poolAddress.toLowerCase()) {
           // The pool address doesn't match the one derived from the factory, ignore this log
@@ -57,9 +75,15 @@ export const provideHandleTransaction = (): HandleTransaction => {
         }
 
         // Decode the log using the ABI
-        const decodedLog = new ethers.utils.Interface(
-          UNISWAP_V3_POOL_ABI
-        ).parseLog(log);
+        let decodedLog;
+        try {
+          decodedLog = new ethers.utils.Interface(UNISWAP_V3_POOL_ABI).parseLog(
+            log
+          );
+        } catch (err) {
+          console.error("Error decoding swap log:", err);
+          continue; // Skip this log if decoding fails
+        }
 
         const { sender, recipient, amount0, amount1, sqrtPriceX96, liquidity } =
           decodedLog.args;

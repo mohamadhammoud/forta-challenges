@@ -1,9 +1,13 @@
-import { ethers } from "forta-agent";
+import { ethers, getEthersProvider } from "forta-agent";
+
+export const MOCK_PROVIDER = getEthersProvider();
 
 export const SWAP_ROUTER_02 = "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45";
 
 export const SWAP_EVENT =
   "Swap(address,address,int256,int256,uint160,uint128,int24)";
+
+// "event Swap(address indexed sender,address indexed recipient,int256 amount0,int256 amount1,uint160 sqrtPriceX96,uint128 liquidity,int24 tick)",
 
 export const SWAP_EVENT_SIGNATURE = ethers.utils.id(SWAP_EVENT);
 
