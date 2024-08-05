@@ -33,7 +33,7 @@ export const provideHandleTransaction = (): HandleTransaction => {
 
     for (const log of swapLogs) {
       try {
-        const poolAddress = log.address;
+        const poolAddress = log.address.toLowerCase();
         const poolContract = new ethers.Contract(
           poolAddress,
           UNISWAP_V3_POOL_ABI,
@@ -96,7 +96,7 @@ export const provideHandleTransaction = (): HandleTransaction => {
             severity: FindingSeverity.Low,
             type: FindingType.Info,
             metadata: {
-              poolAddress,
+              poolAddress: poolAddress.toLocaleLowerCase(),
               sender,
               recipient,
               amount0: amount0.toString(),
