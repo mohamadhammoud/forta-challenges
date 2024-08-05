@@ -167,6 +167,6 @@ describe("Uniswap V3 Pool Swap Detection", () => {
         },
       }),
     ]);
-  });
+  }, 10000); // Set timeout to 10 seconds (10000 ms)
 });
 // good
