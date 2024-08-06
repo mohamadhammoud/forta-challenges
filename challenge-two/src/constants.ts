@@ -1,7 +1,5 @@
 import { ethers, getEthersProvider } from "forta-agent";
 
-export const MOCK_PROVIDER = getEthersProvider();
-
 export const SWAP_ROUTER_02 = "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45";
 
 export const SWAP_EVENT =
