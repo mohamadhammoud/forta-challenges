@@ -13,6 +13,7 @@ import {
   UNISWAP_V3_FACTORY_ADDRESS,
   SWAP_EVENT_SIGNATURE,
 } from "./constants";
+import { createTwoAddress } from "./utils";
 
 const provider = getEthersProvider();
 
@@ -40,7 +41,7 @@ export const provideHandleTransaction = (): HandleTransaction => {
           provider
         );
 
-        // Validate the pool's legitimacy by confirming it was created by the Uniswap V3 factory
+        // Fetch token0, token1, and fee from the pool contract
         let token0, token1, fee;
         try {
           token0 = await poolContract.token0();
@@ -54,23 +55,14 @@ export const provideHandleTransaction = (): HandleTransaction => {
           continue; // Skip this pool if fetching details fails
         }
 
-        let derivedPoolAddress;
-        try {
-          derivedPoolAddress = await factoryContract.getPool(
-            token0,
-            token1,
-            fee
-          );
-        } catch (err) {
-          console.error(
-            `Error verifying pool creation at ${poolAddress}:`,
-            err
-          );
-          continue; // Skip this pool if verification fails
-        }
+        // Compute the expected pool address using the createTwoAddress function
+        const expectedPoolAddress = createTwoAddress(
+          { token0, token1, fee },
+          factoryContract
+        ).toLowerCase();
 
-        if (derivedPoolAddress.toLowerCase() !== poolAddress.toLowerCase()) {
-          // The pool address doesn't match the one derived from the factory, ignore this log
+        if (expectedPoolAddress !== poolAddress) {
+          // The pool address doesn't match the one computed, ignore this log
           continue;
         }
 
@@ -96,7 +88,7 @@ export const provideHandleTransaction = (): HandleTransaction => {
             severity: FindingSeverity.Low,
             type: FindingType.Info,
             metadata: {
-              poolAddress: poolAddress.toLocaleLowerCase(),
+              poolAddress,
               sender,
               recipient,
               amount0: amount0.toString(),
